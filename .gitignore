@@ -1,0 +1,4 @@
+*.csv
+/reports
+*Thumbs.db
+.DS_Store
