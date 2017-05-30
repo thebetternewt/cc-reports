@@ -42,23 +42,16 @@ def insert_gift_into_csv(gift, csv)
     gift['c_last_name'],
     gift['c_first_name'],
     gift['banner_id'],
-    # gift['donor_id'],
-    # gift['total_gift_amount'],
     gift['pledge_number'],
     gift['designation_amount'],
     gift['desg_code'],
     gift['other_designation'],
-    # gift['gift_amount'],
-    # gift['gift_designation'],
-    # gift['gift_amount2'],
-    # gift['gift_designation2'],
     gift['gift_description'],
     gift['solicitation_code'],
-    # gift['c_solicitation_code'],
-    # gift['trans_id'],
-    # gift['transaction_id'],
+    gift['sol_org'],
     gift['anonymous'],
     gift['gift_matching'],
+    gift['match_received'],
     gift['tribute_type'],
     gift['tribute_occasion'],
     gift['tribute_notification_name'],
@@ -372,41 +365,34 @@ gift_admin_report = "#{timestamp}_gift_admin.csv"
 CSV.open("reports/#{gift_admin_report}", 'w') do |csv|
   # Insert headers
   csv << [
-    'Settle Date',
-    'Last Name',
-    'First Name',
-    'C_Last Name',
-    'C_First Name',
-    'Banner_ID',
-    # 'C_Donor ID',
-    # 'C_Total GIft Amount',
-    'Pledge Number',
-    'Designation Amount',
-    'Designation Code',
-    'Other Designation',
-    # 'C_Gift Amount 1',
-    # 'C_Gift Designation 1',
-    # 'C_Gift Amount 2',
-    # 'C_Gift Designation 2',
-    'C_Description',
-    'Solicitation Code',
-    # 'C_Solicitation Code',
-    # 'Transaction ID',
-    # 'Transaction Number',
-    'Anonymous',
-    'Gift Matching',
-    'Tribute Type',
-    'Tribute Occasion',
-    'Tribute Notification Name',
-    'Tribute Notification Address',
-    'Tribute Comments',
-    'C_Mem/In Honor of',
-    'C_Next of Kin',
-    'C_Comments',
-    'C_Card Description',
-    'Tran Type',
-    'C_User ID',
-    'C_Batch #'
+    'settle_date',                  # From Converge
+    'last_name',                    # From iModules
+    'first_name',                   # From iModules
+    'c_last_name',                  # From Converge
+    'c_first_name',                 # From Converge
+    'banner_id',
+    'pledge_number',
+    'amount',
+    'fund',
+    'other_designation',            # From iModules
+    'description',                  # From Converge
+    'solc_code',
+    'solc_org',                     # NEW COLUMN
+    'anonymous',                    # From iModules
+    'gift_matching',                # From iModules
+    'match_received',               # NEW COLUMN => 'Y' if gift_matching NOT NULL
+    'tribute_type',                 # From iModules
+    'tribute_occasion',             # From iModules
+    'tribute_notification_name',    # From iModules
+    'tribute_notification_address', # From iModules
+    'tribute_comments',             # From iModules
+    'memr_in_honor',                # From Converge
+    'next_of_Kin',                  # From Converge
+    'comments',                     # From Converge
+    'pay_method',                   # 'Card Description' from Converge
+    'tran_type',                    # From Converge
+    'C_User ID',                    # From Converge
+    'C_Batch #'                     # From Converge
   ]
 
   # --------------------------------------------
@@ -421,11 +407,16 @@ CSV.open("reports/#{gift_admin_report}", 'w') do |csv|
     case gift['card_description']
     when 'VISA'
       gift['user_id'] == 'Webpage' ? gift['card_description'] = 'WM' : gift['card_description'] = 'MC'
+    when 'MC'
+      gift['user_id'] == 'Webpage' ? gift['card_description'] = 'WM' : gift['card_description'] = 'MC'
     when 'AMEX'
       gift['user_id'] == 'Webpage' ? gift['card_description'] = 'WA' : gift['card_description'] = 'AX'
     when 'DISC'
       gift['user_id'] == 'Webpage' ? gift['card_description'] = 'WD' : gift['card_description'] = 'DS'
     end
+
+    # match_received
+    gift['match_received'] = 'Y' unless gift['gift_matching'].to_s.empty?
 
     # iModules Tribute Type codes
     case gift['tribute_type']
@@ -440,7 +431,20 @@ CSV.open("reports/#{gift_admin_report}", 'w') do |csv|
 
     # Merge gift/donor info from iModules and Converge.
     gift['banner_id'] = gift['donor_id'] if gift['banner_id'].nil?
-    gift['designation_amount'] ||= ( gift['gift_amount'].nil? ? gift['total_gift_amount'] : gift['gift_amount'] )
+
+    # Attempt to update 'designation_amount' with iModules Report amount.
+    if gift['designation_amount'].nil? || gift['designation_amount'].empty?
+      gift['designation_amount'] = gift['gift_total']
+    end
+    # Update 'designation_amount' with Converge amount if no iModules data.
+    if gift['designation_amount'].nil? || gift['designation_amount'].empty?
+      # Use 'total_gift_amount' field if 'gift_amount' is nil.
+      if gift['gift_amount'].nil? || gift['gift_amount'].empty?
+        gift['designation_amount'] = gift['total_gift_amount']
+      else
+        gift['designation_amount'] = gift['gift_amount']
+      end
+    end
     gift['desg_code'] = gift['gift_designation'] if gift['desg_code'].nil?
     gift['solicitation_code'] = gift['c_solicitation_code'] if gift['solicitation_code'].nil?
 
@@ -449,7 +453,7 @@ CSV.open("reports/#{gift_admin_report}", 'w') do |csv|
     gift['c_phone_number'] = clean_phone_number('', gift['c_phone_number'])
 
     # Break apart multiple designations.
-    unless gift['gift_amount2'].empty?
+    unless gift['gift_amount2'].nil? || gift['gift_amount2'].empty?
       new_gift = gift.to_a.to_h
       new_gift['designation_amount'] = gift['gift_amount2']
       new_gift['desg_code'] = gift['gift_designation2']
