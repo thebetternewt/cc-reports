@@ -50,6 +50,7 @@ def insert_gift_into_csv(gift, csv)
     gift['solicitation_code'],
     gift['sol_org'],
     gift['anonymous'],
+    gift['gcls_code_3'],
     gift['gift_matching'],
     gift['match_received'],
     gift['tribute_type'],
@@ -379,6 +380,7 @@ CSV.open("reports/#{gift_admin_report}", 'w') do |csv|
     'solc_code',
     'solc_org',                     # NEW COLUMN
     'anonymous',                    # From iModules
+    'gcls_code_3',                  # NEW COLUMN
     'gift_matching',                # From iModules
     'match_received',               # NEW COLUMN => 'Y' if gift_matching NOT NULL
     'tribute_type',                 # From iModules
@@ -547,9 +549,9 @@ CSV.open("reports/#{dataserv_report}", 'w') do |csv|
 end
 
 # Open gift_admin_report
-if /cygwin|mswin|mingw|bccwin|wince|emx/ =~ RUBY_PLATFORM # Check if Windows OS
-  system %{cmd /c "start reports\\#{gift_admin_report}"}
-else system %{open "reports/#{gift_admin_report}"} # Assume Mac OS/Linux
-end
+# if /cygwin|mswin|mingw|bccwin|wince|emx/ =~ RUBY_PLATFORM # Check if Windows OS
+#   system %{cmd /c "start reports\\#{gift_admin_report}"}
+# else system %{open "reports/#{gift_admin_report}"} # Assume Mac OS/Linux
+# end
 
 puts
