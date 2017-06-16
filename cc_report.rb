@@ -44,24 +44,24 @@ def insert_gift_into_csv(gift, csv)
     gift['banner_id'],
     gift['pledge_number'],
     gift['designation_amount'],
+    gift['card_description'],
     gift['desg_code'],
     gift['other_designation'],
     gift['gift_description'],
-    gift['solicitation_code'],
-    gift['sol_org'],
-    gift['anonymous'],
-    gift['gcls_code_3'],
-    gift['gift_matching'],
-    gift['match_received'],
     gift['tribute_type'],
     gift['tribute_occasion'],
     gift['tribute_notification_name'],
     gift['tribute_notification_address'],
     gift['tribute_comments'],
+    gift['anonymous'],
+    gift['gcls_code_3'],
     gift['mem_in_honor'],
     gift['next_of_kin'],
     gift['comments'],
-    gift['card_description'],
+    gift['sol_org'],
+    gift['solicitation_code'],
+    gift['gift_matching'],
+    gift['match_received'],
     gift['tran_type'],
     gift['user_id'],
     gift['batch_num']
@@ -374,24 +374,24 @@ CSV.open("reports/#{gift_admin_report}", 'w') do |csv|
     'banner_id',
     'pledge_number',
     'amount',
+    'pay_method',                   # 'Card Description' from Converge
     'fund',
     'other_designation',            # From iModules
     'description',                  # From Converge
-    'solc_code',
-    'solc_org',                     # NEW COLUMN
-    'anonymous',                    # From iModules
-    'gcls_code_3',                  # NEW COLUMN
-    'gift_matching',                # From iModules
-    'match_received',               # NEW COLUMN => 'Y' if gift_matching NOT NULL
     'tribute_type',                 # From iModules
     'tribute_occasion',             # From iModules
     'tribute_notification_name',    # From iModules
     'tribute_notification_address', # From iModules
     'tribute_comments',             # From iModules
+    'anonymous',                    # From iModules
+    'gcls_code_3',                  # NEW COLUMN
     'memr_in_honor',                # From Converge
     'next_of_Kin',                  # From Converge
     'comments',                     # From Converge
-    'pay_method',                   # 'Card Description' from Converge
+    'solc_org',                     # NEW COLUMN
+    'solc_code',
+    'match_received',               # NEW COLUMN => 'Y' if gift_matching NOT NULL
+    'gift_matching',                # From iModules
     'tran_type',                    # From Converge
     'C_User ID',                    # From Converge
     'C_Batch #'                     # From Converge
@@ -401,8 +401,18 @@ CSV.open("reports/#{gift_admin_report}", 'w') do |csv|
   # Insert data
   # --------------------------------------------
 
-  # Sort gifts by 'settle_date'
-  gifts.sort_by! { |gift| gift['settle_date']}
+  # Merge gift/donor info from iModules and Converge.
+  gifts.each { |gift| gift['banner_id'] = gift['donor_id'] if gift['banner_id'].nil? }
+
+  # Sort gifts by 'banner_id' then 'settle_date'.
+  gifts.sort_by! { |gift| [gift['banner_id'].to_s,
+                           gift['settle_date'],
+                           gift['c_last_name'].to_s,
+                           gift['c_first_name'].to_s] }
+#  gifts.sort_by! { |gift| [gift['banner_id'].to_s, gift['settle_date']]}.reverse!
+# gifts.reverse! # Reverse the sort by banner_id.
+#  gifts.sort_by! { |gift| gift['settle_date']}
+
 
   gifts.each do |gift|
     # Update card description.
@@ -430,9 +440,6 @@ CSV.open("reports/#{gift_admin_report}", 'w') do |csv|
 
     # Anonymous codes = 'ANON'
     gift['anonymous'] == 'True' ? gift['anonymous'] = 'ANON' : gift['anonymous'] = ''
-
-    # Merge gift/donor info from iModules and Converge.
-    gift['banner_id'] = gift['donor_id'] if gift['banner_id'].nil?
 
     # Attempt to update 'designation_amount' with iModules Report amount.
     if gift['designation_amount'].nil? || gift['designation_amount'].empty?
