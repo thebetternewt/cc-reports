@@ -60,8 +60,8 @@ def insert_gift_into_csv(gift, csv)
     gift['comments'],
     gift['sol_org'],
     gift['solicitation_code'],
-    gift['gift_matching'],
     gift['match_received'],
+    gift['gift_matching'],
     gift['tran_type'],
     gift['user_id'],
     gift['batch_num']
