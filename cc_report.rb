@@ -428,7 +428,7 @@ CSV.open("reports/#{gift_admin_report}", 'w') do |csv|
     end
 
     # match_received
-    gift['match_received'] = 'Y' unless gift['gift_matching'].to_s.empty?
+    # gift['match_received'] = 'Y' unless gift['gift_matching'].to_s.empty?
 
     # iModules Tribute Type codes
     case gift['tribute_type']
