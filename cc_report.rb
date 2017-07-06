@@ -157,7 +157,10 @@ db.execute <<-SQL
 SQL
 
 # Populate iModules Designations table.
-CSV.foreach(imodules_designations_path, headers: true) do |row|
+p imodules_designations_path
+CSV.foreach(imodules_designations_path, { headers: true,
+                                          encoding: 'windows-1251:utf-8'
+  }) do |row|
   db.execute "INSERT INTO designations (
     gift_id,
     last_name,
@@ -179,7 +182,9 @@ CSV.foreach(imodules_designations_path, headers: true) do |row|
 end
 
 # Populate iModules Export table.
-CSV.foreach(imodules_export_path, headers: true) do |row|
+CSV.foreach(imodules_export_path, { headers: true,
+                                    encoding: 'windows-1251:utf-8'
+  }) do |row|
   db.execute "INSERT INTO gift_info VALUES #{fields_for_sql(24)}",
     [ row['Transaction ID'],
       row['Last Name'],
@@ -309,7 +314,9 @@ puts "CSV file 'new_converge_report.csv' created!"
 
 
 # Populate converge_payments table from new file.
-CSV.foreach('new_converge_report.csv', headers: true) do |row|
+CSV.foreach('new_converge_report.csv', { headers: true,
+                                         encoding: 'windows-1251:utf-8'
+  }) do |row|
 
   db.execute "INSERT INTO converge_payments VALUES #{fields_for_sql(27)}",
     [ row['Transaction'],
