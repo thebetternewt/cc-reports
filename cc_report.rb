@@ -58,8 +58,8 @@ def insert_gift_into_csv(gift, csv)
     gift['mem_in_honor'],
     gift['next_of_kin'],
     gift['comments'],
-    gift['sol_org'],
-    gift['solicitation_code'],
+    gift['solc_org'],
+    gift['solc_code'],
     gift['match_received'],
     gift['gift_matching'],
     gift['tran_type'],
@@ -111,7 +111,8 @@ db.execute <<-SQL
     email varchar(50),
     anonymous varchar(10),
     other_designation varchar(30),
-    solicitation_code varchar(10),
+    solc_code varchar(10),
+    appeal_code varchar(30),
     gift_matching varchar(30),
     tribute_type varchar(10),
     tribute_full_name varchar(10),
@@ -150,7 +151,7 @@ db.execute <<-SQL
     total_gift_amount varchar(20),
     gift_amount varchar(20),
     gift_amount2 varchar(20),
-    solicitation_code varchar(20),
+    solc_code varchar(20),
     tran_type varchar(10),
     batch_num varchar(10)
   );
@@ -180,7 +181,7 @@ end
 
 # Populate iModules Export table.
 CSV.foreach(imodules_export_path, headers: true) do |row|
-  db.execute "INSERT INTO gift_info VALUES #{fields_for_sql(24)}",
+  db.execute "INSERT INTO gift_info VALUES #{fields_for_sql(25)}",
     [ row['Transaction ID'],
       row['Last Name'],
       row['First Name'],
@@ -196,6 +197,7 @@ CSV.foreach(imodules_export_path, headers: true) do |row|
       row['MAG12 - Is Anonymous'],
       row['MAG12 - OtherDesignation'],
       row['Giving - Solicitation Type'],
+      row['Appeal Code'],
       row['Make a Gift - MAG12 - Gift Matching'],
       row['MAG12 - TributeType'],
       row['MAG12 - TributeFullName'],
@@ -224,7 +226,8 @@ imod_query = "SELECT
       designation_amount,
       desg_code,
       other_designation,
-      solicitation_code,
+      solc_code,
+      appeal_code,
       id as trans_id,
       trans_number,
       anonymous,
@@ -251,6 +254,7 @@ CSV.open('imod_report.csv', 'w') do |csv|
     'Designation Code',
     'Other Designation',
     'Solicitation Code',
+    'Appeal Code',
     'Transaction ID',
     'Transaction Number',
     'Anonymous',
@@ -271,7 +275,8 @@ CSV.open('imod_report.csv', 'w') do |csv|
       record['designation_amount'],
       record['desg_code'],
       record['other_designation'],
-      record['solicitation_code'],
+      record['solc_code'],
+      record['appeal_code'],
       record['trans_id'],
       record['trans_number'],
       record['anonymous'],
@@ -354,7 +359,7 @@ gifts = db.execute \
         zip as c_zip,
         phone_number as c_phone_number,
         email as c_email,
-        solicitation_code as c_solicitation_code
+        solc_code as c_solc_code
       FROM converge_payments
       WHERE settle_date NOT NULL
   ) LEFT OUTER JOIN (#{imod_query}) ON trans_number = transaction_id
@@ -445,6 +450,7 @@ CSV.open("reports/#{gift_admin_report}", 'w') do |csv|
     if gift['designation_amount'].nil? || gift['designation_amount'].empty?
       gift['designation_amount'] = gift['gift_total']
     end
+
     # Update 'designation_amount' with Converge amount if no iModules data.
     if gift['designation_amount'].nil? || gift['designation_amount'].empty?
       # Use 'total_gift_amount' field if 'gift_amount' is nil.
@@ -455,7 +461,17 @@ CSV.open("reports/#{gift_admin_report}", 'w') do |csv|
       end
     end
     gift['desg_code'] = gift['gift_designation'] if gift['desg_code'].nil?
-    gift['solicitation_code'] = gift['c_solicitation_code'] if gift['solicitation_code'].nil?
+    gift['solc_code'] = gift['c_solc_code'] if gift['solc_code'].nil?
+
+    # Split out solicitation_code & solicitation_org for recurring payments.
+    if gift['user_id'] == 'Recurring' && gift['solc_code'] =~ /.+\s.+/i
+      gift['solc_code'], gift['solc_org'] = gift['solc_code'].upcase.split(' ')
+    end
+
+    # Replace solicitation_code & solicitation_org with appeal_code if appeal_code exists.
+    unless gift['appeal_code'].nil?
+      gift['solc_org'], gift['solc_code'] = gift['appeal_code'].split('/')
+    end
 
     # Clean phone numbers.
     gift['phone_number'] = clean_phone_number(gift['area'], gift['phone_number'])
