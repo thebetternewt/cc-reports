@@ -183,7 +183,9 @@ CSV.foreach(imodules_designations_path, { headers: true,
 end
 
 # Populate iModules Export table.
-CSV.foreach(imodules_export_path, headers: true) do |row|
+CSV.foreach(imodules_export_path, { headers: true,
+                                    encoding: 'windows-1251:utf-8'
+  }) do |row|
   db.execute "INSERT INTO gift_info VALUES #{fields_for_sql(25)}",
     [ row['Transaction ID'],
       row['Last Name'],
